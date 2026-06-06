@@ -63,7 +63,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'votacion_db',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -99,3 +99,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Usar el modelo de usuario personalizado
 AUTH_USER_MODEL = 'usuarios.Votante'
+
+# Webhook n8n — reemplaza con tu URL cuando lo configures
+N8N_WEBHOOK_VOTO = ''  # ej: 'https://tu-n8n.com/webhook/voto'

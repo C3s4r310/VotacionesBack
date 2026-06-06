@@ -2,10 +2,10 @@ from django.db import models
 from usuarios.models import Votante
 
 class Candidato(models.Model):
-    nombre    = models.CharField(max_length=150)
-    partido   = models.CharField(max_length=150)
-    foto      = models.ImageField(upload_to='candidatos/', null=True, blank=True)
-    activo    = models.BooleanField(default=True)
+    nombre  = models.CharField(max_length=150)
+    partido = models.CharField(max_length=150)
+    foto    = models.ImageField(upload_to='candidatos/', null=True, blank=True)
+    activo  = models.BooleanField(default=True)
 
     def __str__(self):
         return f'{self.nombre} - {self.partido}'
@@ -23,3 +23,7 @@ class Voto(models.Model):
         if self.en_blanco:
             return f'{self.votante.dni} — Voto en blanco'
         return f'{self.votante.dni} votó por {self.candidato.nombre}'
+
+    class Meta:
+        verbose_name        = 'Voto'
+        verbose_name_plural = 'Votos'

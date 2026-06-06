@@ -6,7 +6,7 @@ class VotanteManager(BaseUserManager):
         if not dni:
             raise ValueError('El DNI es obligatorio')
         user = self.model(dni=dni, **extra_fields)
-        user.set_password(password)
+        user.set_password(password or dni)
         user.save(using=self._db)
         return user
 
@@ -17,31 +17,31 @@ class VotanteManager(BaseUserManager):
 
 
 class Votante(AbstractBaseUser, PermissionsMixin):
-    # Datos personales (del DNI)
-    dni           = models.CharField(max_length=8, unique=True)
-    nombres       = models.CharField(max_length=100)
-    apellidos     = models.CharField(max_length=100)
-    fecha_nac     = models.DateField()
-    distrito      = models.CharField(max_length=100)
-    departamento  = models.CharField(max_length=100)
-    codigo_val2   = models.CharField(max_length=20)  # código de validación 2 del DNI
+    # Padrón — cargado por el admin
+    dni          = models.CharField(max_length=8, unique=True)
+    nombres      = models.CharField(max_length=100)
+    apellidos    = models.CharField(max_length=100)
+    fecha_nac    = models.DateField()
+    distrito     = models.CharField(max_length=100)
+    departamento = models.CharField(max_length=100)
+    correo       = models.EmailField(unique=True)
+    foto_dni     = models.ImageField(upload_to='padron/', null=True, blank=True)
 
-    # Imágenes
-    foto_dni      = models.ImageField(upload_to='dni/', null=True, blank=True)
-    foto_rostro   = models.ImageField(upload_to='rostros/', null=True, blank=True)
+    # Se llena cuando el votante llega
+    foto_rostro  = models.ImageField(upload_to='rostros/', null=True, blank=True)
 
-    # Estado
-    validado      = models.BooleanField(default=False)  # pasó validación facial
-    ya_voto       = models.BooleanField(default=False)
-    activo        = models.BooleanField(default=True)   # admin puede desactivar
+    # Estado del votante
+    validado     = models.BooleanField(default=False)
+    ya_voto      = models.BooleanField(default=False)
+    activo       = models.BooleanField(default=True)
 
     # Django internos
-    is_staff      = models.BooleanField(default=False)
-    is_active     = models.BooleanField(default=True)
+    is_staff       = models.BooleanField(default=False)
+    is_active      = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'dni'
-    REQUIRED_FIELDS = ['nombres', 'apellidos', 'fecha_nac']
+    USERNAME_FIELD  = 'dni'
+    REQUIRED_FIELDS = ['nombres', 'apellidos', 'fecha_nac', 'correo']
 
     objects = VotanteManager()
 
@@ -49,5 +49,5 @@ class Votante(AbstractBaseUser, PermissionsMixin):
         return f'{self.nombres} {self.apellidos} - DNI: {self.dni}'
 
     class Meta:
-        verbose_name = 'Votante'
+        verbose_name        = 'Votante'
         verbose_name_plural = 'Votantes'

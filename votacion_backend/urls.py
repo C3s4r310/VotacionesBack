@@ -4,9 +4,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/',      admin.site.urls),
-    path('api/usuarios/', include('usuarios.urls')),
-    path('api/votacion/', include('votacion.urls')),
+    path('admin/',          admin.site.urls),
+    path('api/usuarios/',   include('usuarios.urls')),
+    path('api/votacion/',   include('votacion.urls')),
     path('api/validacion/', include('validacion.urls')),
 ]
 
