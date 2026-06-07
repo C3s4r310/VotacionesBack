@@ -9,4 +9,5 @@ urlpatterns = [
     path('toggle-resultados/',       views.toggle_resultados,     name='toggle_resultados'),
     path('admin/votantes/',          views.admin_votantes,        name='admin_votantes'),
     path('admin/votantes/<int:pk>/', views.admin_toggle_votante,  name='admin_toggle_votante'),
+    path('resultados-publicos/', views.resultados_publicos, name='resultados_publicos'),
 ]

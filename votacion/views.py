@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Count
@@ -171,11 +171,80 @@ def admin_toggle_votante(request, pk):
 
 # ── Resultados habilitados ──────────────────────────────────────────────────
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def resultados_habilitados(request):
     from django.core.cache import cache
     habilitado = cache.get('resultados_habilitados', False)
     return Response({'habilitado': habilitado})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def resultados_publicos(request):
+    from django.core.cache import cache
+    if not cache.get('resultados_habilitados', False):
+        return Response({'habilitado': False}, status=403)
+
+    total_registrados = Votante.objects.filter(activo=True).count()
+    total_votos       = Voto.objects.count()
+    votos_blanco      = Voto.objects.filter(en_blanco=True).count()
+    ausentes          = total_registrados - total_votos
+    participacion     = round((total_votos / total_registrados) * 100, 2) if total_registrados > 0 else 0
+
+    por_candidato = (
+        Voto.objects.filter(en_blanco=False)
+        .values('candidato__nombre', 'candidato__partido')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+
+    resultados_lista = []
+    for d in por_candidato:
+        resultados_lista.append({
+            'candidato':  d['candidato__nombre'],
+            'partido':    d['candidato__partido'],
+            'votos':      d['total'],
+            'porcentaje': round((d['total'] / total_votos) * 100, 2) if total_votos > 0 else 0,
+        })
+
+    if votos_blanco > 0:
+        resultados_lista.append({
+            'candidato':  'Voto en Blanco',
+            'partido':    '—',
+            'votos':      votos_blanco,
+            'porcentaje': round((votos_blanco / total_votos) * 100, 2) if total_votos > 0 else 0,
+        })
+
+    por_departamento = (
+        Voto.objects.values('votante__departamento')
+        .annotate(total=Count('id')).order_by('-total')
+    )
+
+    por_distrito = (
+        Voto.objects.values('votante__distrito', 'votante__departamento')
+        .annotate(total=Count('id')).order_by('-total')
+    )
+
+    return Response({
+        'habilitado': True,
+        'resumen': {
+            'total_registrados': total_registrados,
+            'total_votos':       total_votos,
+            'votos_blanco':      votos_blanco,
+            'ausentes':          ausentes,
+            'participacion':     participacion,
+        },
+        'por_candidato':    resultados_lista,
+        'por_departamento': [
+            {'departamento': d['votante__departamento'], 'votos': d['total'],
+             'porcentaje': round((d['total'] / total_votos) * 100, 2) if total_votos > 0 else 0}
+            for d in por_departamento
+        ],
+        'por_distrito': [
+            {'distrito': d['votante__distrito'], 'departamento': d['votante__departamento'], 'votos': d['total']}
+            for d in por_distrito
+        ],
+    })
 
 
 @api_view(['POST'])

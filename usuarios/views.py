@@ -104,3 +104,23 @@ def admin_eliminar_votante(request, pk):
         return Response({'error': 'Votante no encontrado'}, status=404)
     votante.delete()
     return Response({'mensaje': 'Votante eliminado del padrón'})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login(request):
+    dni      = request.data.get('dni')
+    password = request.data.get('password')
+
+    votante = authenticate(request, dni=dni, password=password)
+    if not votante:
+        return Response({'error': 'Credenciales incorrectas'}, status=401)
+
+    if not votante.is_staff:
+        return Response({'error': 'No tienes permisos de administrador'}, status=403)
+
+    refresh = RefreshToken.for_user(votante)
+    return Response({
+        'access':   str(refresh.access_token),
+        'is_admin': votante.is_staff,
+        'votante':  VotanteSerializer(votante).data
+    })
