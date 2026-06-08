@@ -2,11 +2,30 @@ name: Django CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8
+
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testdb
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
     - name: Descargar código
@@ -23,6 +42,13 @@ jobs:
         pip install -r requirements.txt
 
     - name: Ejecutar migraciones
+      env:
+        DB_NAME: testdb
+        DB_USER: root
+        DB_PASSWORD: root
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+
       run: |
         python manage.py migrate
 
