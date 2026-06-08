@@ -100,5 +100,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Usar el modelo de usuario personalizado
 AUTH_USER_MODEL = 'usuarios.Votante'
 
-# Webhook n8n — reemplaza con tu URL cuando lo configures
-N8N_WEBHOOK_VOTO = ''  # ej: 'https://tu-n8n.com/webhook/voto'
+# Webhook n8n — para cuando se emite un voto
+N8N_WEBHOOK_VOTO = 'https://jhoanaronith.app.n8n.cloud/webhook/36edb614-1e26-485d-a734-59b522befd56'
+
+# Webhook n8n - para cuando hay una alerta
+N8N_WEBHOOK_ALERTA = 'https://jhoanaronith.app.n8n.cloud/webhook-test/3c72772a-3180-4e7e-9a0d-860aa98da8ec'
+CORREO_ADMIN = "jhoaro2503@gmail.com"

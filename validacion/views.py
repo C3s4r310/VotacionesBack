@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import os
 import tempfile
+import requests as http_requests
 
 def comparar_rostros(ruta1, ruta2):
     """Compara dos imágenes y retorna (coincide, confianza)."""
@@ -38,7 +39,6 @@ def comparar_rostros(ruta1, ruta2):
 
     return coincide, confianza
 
-
 # ── Paso 1: Validar foto DNI subida vs foto DNI del padrón ─────────────────
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -54,7 +54,6 @@ def validar_foto_dni(request):
 
     ruta_padron = os.path.join(settings.MEDIA_ROOT, str(votante.foto_dni))
 
-    # Guardar foto subida temporalmente
     foto_subida = request.FILES['foto_dni']
     with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
         for chunk in foto_subida.chunks():
@@ -66,7 +65,6 @@ def validar_foto_dni(request):
     finally:
         os.unlink(ruta_tmp)
 
-    # Registrar intento
     IntentoAcceso.objects.create(
         votante       = votante,
         dni_ingresado = votante.dni,
@@ -76,16 +74,30 @@ def validar_foto_dni(request):
     )
 
     if coincide:
+        votante.intentos_fallidos = 0
+        votante.save()
         return Response({
             'validado':  True,
             'confianza': confianza,
             'mensaje':   'Foto del DNI verificada correctamente'
         })
     else:
+        votante.intentos_fallidos += 1
+        if votante.intentos_fallidos >= 3:
+            votante.activo = False
+            votante.save()
+            notificar_intentos_fallidos(votante)
+            return Response({
+                'validado': False,
+                'bloqueado': True,
+                'mensaje':  'Has superado el límite de intentos. Tu acceso ha sido bloqueado. Contacta al administrador.'
+            }, status=403)
+        votante.save()
         return Response({
             'validado':  False,
+            'bloqueado': False,
             'confianza': confianza,
-            'mensaje':   'La foto del DNI no coincide con el padrón'
+            'mensaje':   f'La foto del DNI no coincide con el padrón. Intento {votante.intentos_fallidos}/3'
         }, status=400)
 
 
@@ -104,7 +116,6 @@ def validar_rostro(request):
 
     ruta_padron = os.path.join(settings.MEDIA_ROOT, str(votante.foto_dni))
 
-    # Guardar selfie temporalmente
     selfie = request.FILES['foto_rostro']
     with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
         for chunk in selfie.chunks():
@@ -116,7 +127,6 @@ def validar_rostro(request):
     finally:
         os.unlink(ruta_tmp)
 
-    # Registrar intento
     IntentoAcceso.objects.create(
         votante       = votante,
         dni_ingresado = votante.dni,
@@ -126,7 +136,8 @@ def validar_rostro(request):
     )
 
     if coincide:
-        votante.validado = True
+        votante.validado          = True
+        votante.intentos_fallidos = 0
         votante.save()
         return Response({
             'validado':  True,
@@ -134,8 +145,38 @@ def validar_rostro(request):
             'mensaje':   'Rostro verificado correctamente'
         })
     else:
+        votante.intentos_fallidos += 1
+        if votante.intentos_fallidos >= 3:
+            votante.activo = False
+            votante.save()
+            notificar_intentos_fallidos(votante)
+            return Response({
+                'validado':  False,
+                'bloqueado': True,
+                'mensaje':   'Has superado el límite de intentos. Tu acceso ha sido bloqueado. Contacta al administrador.'
+            }, status=403)
+        votante.save()
         return Response({
             'validado':  False,
+            'bloqueado': False,
             'confianza': confianza,
-            'mensaje':   'Tu rostro no coincide con la foto del DNI'
+            'mensaje':   f'El rostro no coincide con la foto del DNI. Intento {votante.intentos_fallidos}/3'
         }, status=400)
+    
+#Notificar cuando se superan 3 intentos fallidos
+def notificar_intentos_fallidos(votante):
+    """Notifica al admin si hay 3 intentos fallidos."""
+    try:
+        webhook_url = getattr(settings, 'N8N_WEBHOOK_ALERTA', None)
+        correo_admin = getattr(settings, 'CORREO_ADMIN', None)
+        if webhook_url and correo_admin:
+            http_requests.post(webhook_url, json={
+                'correo_admin': correo_admin,
+                'dni':          votante.dni,
+                'nombres':      votante.nombres,
+                'apellidos':    votante.apellidos,
+                'intentos':     votante.intentos_fallidos,
+                'mensaje':      f'El votante {votante.dni} ha tenido {votante.intentos_fallidos} intentos fallidos',
+            }, timeout=5)
+    except Exception as e:
+        print(f'Error webhook alerta: {e}')

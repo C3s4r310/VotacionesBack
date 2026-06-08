@@ -40,6 +40,9 @@ class Votante(AbstractBaseUser, PermissionsMixin):
     is_active      = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
+    #Cuando hay intentos fallidos
+    intentos_fallidos = models.IntegerField(default=0)
+
     USERNAME_FIELD  = 'dni'
     REQUIRED_FIELDS = ['nombres', 'apellidos', 'fecha_nac', 'correo']
 
