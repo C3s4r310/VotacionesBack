@@ -1,7 +1,8 @@
 from pathlib import Path
 from datetime import timedelta
+import os
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(_file_).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-cambia-esto-en-produccion'
 
@@ -17,9 +18,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     # Terceros
     'rest_framework',
     'corsheaders',
+
     # Nuestras apps
     'usuarios',
     'validacion',
@@ -57,19 +60,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'votacion_backend.wsgi.application'
 
-# Base de datos MySQL
+# =========================
+# BASE DE DATOS MYSQL
+# =========================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'votacion_db',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
+
+        # Variables para GitHub Actions y producción
+        'NAME': os.getenv('DB_NAME', 'votacion_db'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'root'),
+        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+        'PORT': os.getenv('DB_PORT', '3306'),
     }
 }
 
+# =========================
 # JWT
+# =========================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -81,28 +90,43 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
-# CORS — permite peticiones desde React
+# =========================
+# CORS
+# =========================
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Archivos subidos (fotos DNI, rostro)
-import os
+# =========================
+# MEDIA FILES
+# =========================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# =========================
+# INTERNACIONALIZACIÓN
+# =========================
 LANGUAGE_CODE = 'es-pe'
 TIME_ZONE = 'America/Lima'
+
 USE_I18N = True
 USE_TZ = True
 
+# =========================
+# STATIC FILES
+# =========================
 STATIC_URL = 'static/'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Usar el modelo de usuario personalizado
+# =========================
+# MODELO DE USUARIO
+# =========================
 AUTH_USER_MODEL = 'usuarios.Votante'
 
-# Webhook n8n — para cuando se emite un voto
+# =========================
+# WEBHOOKS N8N
+# =========================
 N8N_WEBHOOK_VOTO = 'https://jhoanaronith.app.n8n.cloud/webhook/36edb614-1e26-485d-a734-59b522befd56'
 
-# Webhook n8n - para cuando hay una alerta
 N8N_WEBHOOK_ALERTA = 'https://jhoanaronith.app.n8n.cloud/webhook-test/3c72772a-3180-4e7e-9a0d-860aa98da8ec'
+
 CORREO_ADMIN = "jhoaro2503@gmail.com"
